@@ -1,4 +1,4 @@
-namespace Api;
+namespace Api.Users;
 
 public record User(
     string Id,

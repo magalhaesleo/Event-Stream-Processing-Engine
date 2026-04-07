@@ -1,3 +1,4 @@
+using Api.Users;
 using MongoDB.Driver;
 
 namespace Api;
@@ -13,6 +14,7 @@ public static class Program
             new MongoClient(builder.Configuration.GetConnectionString("MongoDb")));
         builder.Services.AddSingleton<IMongoDatabase>(provider =>
             provider.GetRequiredService<IMongoClient>().GetDatabase("Transactions"));
+        builder.Services.AddSingleton<UserService>();
 
         var app = builder.Build();
         
@@ -23,11 +25,10 @@ public static class Program
 
         app.UseAuthorization();
 
-        app.MapPost("/user", async (User user, IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
+        app.MapPost("/users", async (User user, UserService userService, CancellationToken cancellationToken) =>
             {
-                var usersCollection = mongoDatabase.GetCollection<User>("users");
-                await usersCollection.InsertOneAsync(user, null, cancellationToken);
-                return Results.Ok();
+                await userService.AddUser(user, cancellationToken);
+                return Results.Ok(user);
             })
             .WithName("AddUser");
         
