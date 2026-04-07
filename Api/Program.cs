@@ -7,11 +7,7 @@ public static class Program
     public static void Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
-
-        // Add services to the container.
         builder.Services.AddAuthorization();
-
-        // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
         builder.Services.AddSingleton<IMongoClient>(
             new MongoClient(builder.Configuration.GetConnectionString("MongoDb")));
@@ -19,31 +15,28 @@ public static class Program
             provider.GetRequiredService<IMongoClient>().GetDatabase("Transactions"));
 
         var app = builder.Build();
-
-        // Configure the HTTP request pipeline.
+        
         if (app.Environment.IsDevelopment())
-        {
             app.MapOpenApi();
-        }
 
         app.UseHttpsRedirection();
 
         app.UseAuthorization();
 
-        app.MapPost("/transactions", async (Transaction transaction, IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
+        app.MapPost("/user", async (User user, IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
             {
-                var transactionsCollection = mongoDatabase.GetCollection<Transaction>("transactions");
-                await transactionsCollection.InsertOneAsync(transaction, null, cancellationToken);
+                var usersCollection = mongoDatabase.GetCollection<User>("users");
+                await usersCollection.InsertOneAsync(user, null, cancellationToken);
                 return Results.Ok();
             })
-            .WithName("AddTransaction");
+            .WithName("AddUser");
         
-        app.MapGet("/transactions", async (IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
+        app.MapGet("/users", async (IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
             {
-                var transactionsCollection = mongoDatabase.GetCollection<Transaction>("transactions");
-                return Results.Ok(await transactionsCollection.Find(Builders<Transaction>.Filter.Empty).ToListAsync(cancellationToken));
+                var usersCollection = mongoDatabase.GetCollection<User>("users");
+                return Results.Ok(await usersCollection.Find(Builders<User>.Filter.Empty).ToListAsync(cancellationToken));
             })
-            .WithName("ListTransactions");
+            .WithName("ListUsers");
 
         app.Run();
     }

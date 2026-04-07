@@ -1,9 +1,8 @@
 namespace Api;
 
-public record Transaction(
+public record User(
     string Id,
-    string Type,
+    string Category,
     decimal Amount,
     DateTime CreatedAt
 );
-    
