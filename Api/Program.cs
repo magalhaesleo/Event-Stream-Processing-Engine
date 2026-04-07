@@ -1,6 +1,8 @@
+using MongoDB.Driver;
+
 namespace Api;
 
-public class Program
+public static class Program
 {
     public static void Main(string[] args)
     {
@@ -11,6 +13,10 @@ public class Program
 
         // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
         builder.Services.AddOpenApi();
+        builder.Services.AddSingleton<IMongoClient>(
+            new MongoClient(builder.Configuration.GetConnectionString("MongoDb")));
+        builder.Services.AddSingleton<IMongoDatabase>(provider =>
+            provider.GetRequiredService<IMongoClient>().GetDatabase("Transactions"));
 
         var app = builder.Build();
 
@@ -24,24 +30,20 @@ public class Program
 
         app.UseAuthorization();
 
-        var summaries = new[]
-        {
-            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-        };
-
-        app.MapGet("/weatherforecast", (HttpContext httpContext) =>
+        app.MapPost("/transactions", async (Transaction transaction, IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
             {
-                var forecast = Enumerable.Range(1, 5).Select(index =>
-                        new WeatherForecast
-                        {
-                            Date = DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-                            TemperatureC = Random.Shared.Next(-20, 55),
-                            Summary = summaries[Random.Shared.Next(summaries.Length)]
-                        })
-                    .ToArray();
-                return forecast;
+                var transactionsCollection = mongoDatabase.GetCollection<Transaction>("transactions");
+                await transactionsCollection.InsertOneAsync(transaction, null, cancellationToken);
+                return Results.Ok();
             })
-            .WithName("GetWeatherForecast");
+            .WithName("AddTransaction");
+        
+        app.MapGet("/transactions", async (IMongoDatabase mongoDatabase, CancellationToken cancellationToken) =>
+            {
+                var transactionsCollection = mongoDatabase.GetCollection<Transaction>("transactions");
+                return Results.Ok(await transactionsCollection.Find(Builders<Transaction>.Filter.Empty).ToListAsync(cancellationToken));
+            })
+            .WithName("ListTransactions");
 
         app.Run();
     }
