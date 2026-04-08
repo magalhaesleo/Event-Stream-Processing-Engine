@@ -1,4 +1,13 @@
 ﻿services:
+  api:
+    build: ./Api
+    container_name: api
+    ports:
+      - "8080:80"
+    environment:
+      ASPNETCORE_URLS: http://+:80
+      ConnectionStrings__MongoDb: mongodb://admin:password@mongodb:27017/
+  
   kafka:
     image: apache/kafka:latest
     container_name: kafka
